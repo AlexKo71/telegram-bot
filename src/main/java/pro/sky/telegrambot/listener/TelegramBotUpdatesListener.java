@@ -5,6 +5,7 @@ import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.request.SendMessage;
+import com.pengrad.telegrambot.response.SendResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import pro.sky.telegrambot.entity.NotificationTask;
 import pro.sky.telegrambot.repository.NotificationRepository;
 
 import javax.annotation.PostConstruct;
+import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -45,21 +47,28 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     public int process(List<Update> updates) {
         for (Update update : updates) {
             Message msg = update.message();
-            if (msg != null && msg.text() != null) {
-                if ("/start".equals(msg.text())) {
-                    telegramBot.execute(new SendMessage(msg.chat().id(), "Welcome to the Robby Bot"));
+            Long chatId = msg.chat().id();
+            String text = msg.text();
+            if (text != null) {
+                if ("/start".equals(text)) {
+                    telegramBot.execute(new SendMessage(chatId, "Welcome to the Robby Bot"));
                 } else {
-                    Matcher matcher = PATTERN.matcher(msg.text());
-                    if (matcher.matches()) {
+                    Matcher matcher = PATTERN.matcher(text);
+                    if (matcher.find()) {
                         var dateTime = LocalDateTime.parse(matcher.group(1), DATE_TIME_FORMATTER);
                         var taskText = matcher.group(3);
-                        repository.save(new NotificationTask(taskText, msg.chat().id(), dateTime));
-                    }
+                        if (dateTime.isAfter(LocalDateTime.now())) {
+                            repository.save(new NotificationTask(taskText, chatId, dateTime));
+                            telegramBot.execute(new SendMessage(chatId, "The task was planed"));
+                        } else {
+                            telegramBot.execute(new SendMessage(chatId, "The task was not planed, incorrect time"));
+                        }
                 }
             }
         }
-        return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
+        return UpdatesListener.CONFIRMED_UPDATES_ALL;
+}
 
 }
 

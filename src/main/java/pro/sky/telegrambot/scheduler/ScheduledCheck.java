@@ -2,15 +2,15 @@ package pro.sky.telegrambot.scheduler;
 
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.SendMessage;
-import org.jvnet.hk2.annotations.Service;
 import org.springframework.scheduling.annotation.Scheduled;
-import pro.sky.telegrambot.controller.TelegramBotConfiguration;
+import org.springframework.stereotype.Component;
 import pro.sky.telegrambot.repository.NotificationRepository;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.concurrent.TimeUnit;
 
-@Service
+@Component
 public class ScheduledCheck {
 
     private final TelegramBot bot;
@@ -21,7 +21,7 @@ public class ScheduledCheck {
         this.repository = repository;
     }
 
-    @Scheduled(cron = "0 0/1 * * * *")
+    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
     public void run() {
         repository.findAllByDateTime(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES))
                 .forEach(task ->  {
